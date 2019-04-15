@@ -1,5 +1,8 @@
 extern crate cardano;
 
+#[macro_use]
+extern crate cbor_event;
+
 pub mod address;
 pub mod bip39;
 pub mod key;

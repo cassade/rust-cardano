@@ -5,6 +5,7 @@ use cardano::tx::{self, TxId, TxInWitness};
 use cardano::txbuild::{Error, TxBuilder, TxFinalized};
 use cardano::txutils::OutputPolicy;
 use cardano::util::try_from_slice::TryFromSlice;
+use std::os::raw::{c_uchar, c_uint};
 use std::{ptr, slice};
 use types::*;
 
@@ -257,4 +258,24 @@ pub extern "C" fn cardano_transaction_finalized_output(
 #[no_mangle]
 pub extern "C" fn cardano_transaction_signed_delete(txaux: SignedTransactionPtr) {
     unsafe { Box::from_raw(txaux) };
+}
+
+#[no_mangle]
+pub extern "C" fn cardano_transaction_signed_to_bytes(txaux: SignedTransactionPtr, out_pointer: *mut *const u8, size: *mut u32) {
+    let trx = unsafe { txaux.as_ref() }.expect("Not a NULL PTR");
+    let vec = cbor!(trx).unwrap();
+    let ptr = vec.as_ptr();
+    let len = vec.len() as u32;
+
+    // To avoid running the destructor
+    std::mem::forget(vec);
+
+    unsafe { ptr::write(size, len) }
+    unsafe { ptr::write(out_pointer, ptr) };
+}
+
+#[no_mangle]
+pub extern "C" fn cardano_transaction_signed_delete_bytes(ptr: *mut u8, size: u32) {
+    let len = size as usize;
+    unsafe { drop(Vec::from_raw_parts(ptr, len, len)) };
 }

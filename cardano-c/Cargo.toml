@@ -12,7 +12,8 @@ other languages.
 """
 
 [lib]
-crate-type = ["staticlib" ]
+crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
 cardano = { path = "../cardano" }
+cbor_event = "^2.1.1"
