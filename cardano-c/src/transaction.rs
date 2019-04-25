@@ -5,7 +5,6 @@ use cardano::tx::{self, TxId, TxInWitness};
 use cardano::txbuild::{Error, TxBuilder, TxFinalized};
 use cardano::txutils::OutputPolicy;
 use cardano::util::try_from_slice::TryFromSlice;
-use std::os::raw::{c_uchar, c_uint};
 use std::{ptr, slice};
 use types::*;
 
@@ -198,6 +197,13 @@ pub extern "C" fn cardano_transaction_builder_finalize(
 }
 
 #[no_mangle]
+pub extern "C" fn cardano_transaction_id(c_tx: TransactionPtr, c_txid: *mut u8) {
+    let tx = unsafe { c_tx.as_ref() }.expect("Not a NULL PTR");
+    let id = unsafe { slice::from_raw_parts_mut(c_txid, TxId::HASH_SIZE) };
+    id.copy_from_slice(tx.id().as_ref());
+}
+
+#[no_mangle]
 pub extern "C" fn cardano_transaction_delete(tx: TransactionPtr) {
     unsafe { Box::from_raw(tx) };
 }
@@ -261,9 +267,9 @@ pub extern "C" fn cardano_transaction_signed_delete(txaux: SignedTransactionPtr)
 }
 
 #[no_mangle]
-pub extern "C" fn cardano_transaction_signed_to_bytes(txaux: SignedTransactionPtr, out_pointer: *mut *const u8, size: *mut u32) {
-    let trx = unsafe { txaux.as_ref() }.expect("Not a NULL PTR");
-    let vec = cbor!(trx).unwrap();
+pub extern "C" fn cardano_transaction_signed_bytes(c_txaux: SignedTransactionPtr, out_pointer: *mut *const u8, size: *mut u32) {
+    let txaux = unsafe { c_txaux.as_ref() }.expect("Not a NULL PTR");
+    let vec = cbor!(txaux).unwrap();
     let ptr = vec.as_ptr();
     let len = vec.len() as u32;
 
@@ -275,7 +281,7 @@ pub extern "C" fn cardano_transaction_signed_to_bytes(txaux: SignedTransactionPt
 }
 
 #[no_mangle]
-pub extern "C" fn cardano_transaction_signed_delete_bytes(ptr: *mut u8, size: u32) {
+pub extern "C" fn cardano_transaction_signed_bytes_delete(ptr: *mut u8, size: u32) {
     let len = size as usize;
     unsafe { drop(Vec::from_raw_parts(ptr, len, len)) };
 }
